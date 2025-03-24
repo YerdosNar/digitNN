@@ -5,11 +5,11 @@
 #include <time.h>
 
 #define INPUT 784
-#define HID1 16
-#define HID2 16
+#define HID1 25
+#define HID2 25
 #define OUTPUT 10
 
-#define EPOCHS 10
+#define EPOCHS 50
 #define BATCH_SIZE 100
 #define LEARNING_RATE 0.01
 
