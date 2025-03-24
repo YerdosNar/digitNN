@@ -1,1 +1,1 @@
-After cloning, run `chmod +x run.sh`, and after run `run.sh`.
+After cloning, run `chmod +x run.sh`, and after run `run.sh`. After training is ended you will be given only one chance to test. And if you if you want it test again run either `./draw_test` or `./test_nn`. Both executables will appear only after running `./run.sh`
