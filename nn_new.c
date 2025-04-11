@@ -92,16 +92,16 @@ void free_layer(Layer *l) {
 
 void free_all(Layer l[], int size) {
     for(int i = 0; i < size; i++) {
-        free_layer(l[i]);
+        free_layer(&l[i]);
     }
 }
 
 void shuffle(int *arr, int length) {
     for(int i = length-1; i > 0; i--) {
         int j = rand() % (i+1);
-        arr[i] = arr[i] ^ arr[j];
-        arr[j] = arr[i] ^ arr[j];
-        arr[i] = arr[i] ^ arr[j];
+        int temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
     }
 }
 
@@ -126,7 +126,7 @@ void softmax(float output[], int size) {
     }
 }
 
-void backpropagation(float input[], Layer* l[], int lay_num, float target[]) {
+void backpropagation(float input[], Layer **l, int lay_num, float target[]) {
     for(int i = 0; i < l[lay_num-1]->size; i++) {
         l[lay_num - 1]->deltas[i] = l[lay_num-1]->neurons[i] - target[i];
     }
@@ -148,7 +148,14 @@ void backpropagation(float input[], Layer* l[], int lay_num, float target[]) {
                 l[k]->weight_gradients[i][j] += l[k]->deltas[i] * l[k-1]->neurons[j];
             }
         }
-}
+    }
+
+    for(int i = 0; i < l[0]->size; i++) {
+        l[0]->bias_gradients[i] += l[0]->deltas[i];
+        for(int j = 0; j < l[0]->pre_size; j++) {
+            l[0]->weight_gradients[i][j] += l[0]->deltas[i] * input[j];
+        }
+    }
 }
 
 void update_parameters(Layer *l, float learn_rate, int batch_size) {
@@ -162,7 +169,7 @@ void update_parameters(Layer *l, float learn_rate, int batch_size) {
     }
 }
 
-void save_weights(Layer* l[], int lay_num, const char* file) {
+void save_weights(Layer **l, int lay_num, const char* file) {
     FILE* f = fopen(file, "wb");
 
     for(int layer = 0; layer < lay_num; layer++) {
@@ -176,35 +183,44 @@ void save_weights(Layer* l[], int lay_num, const char* file) {
     fclose(f);
 }
 
-int train(int lay_num, Layer l[], int lay_sizes[], int num_images, float* images, int num_labels, unsigned char* labels, int epochs, int batch_size, float learn_rate, const char *weights_bin_file) {
+int train(int lay_num, Layer *l, int lay_sizes[], int num_images, float* images, int num_labels, unsigned char* labels, int epochs, int batch_size, float learn_rate, const char *weights_bin_file) {
     init(l, lay_sizes, lay_num);
     int* indices = (int*)malloc(num_images * sizeof(int));
+    for(int i = 0; i < num_images; i++) {
+        indices[i] = i;
+    }
+    Layer **layers_ptr = (Layer**)malloc(lay_num * sizeof(Layer*));
+    for(int i = 0; i < lay_num; i++) {
+        layers_ptr[i] = &l[i];
+    }
 
+    double overall_time = 0.0;
     for(int epoch = 0; epoch < epochs; epoch++) {
         shuffle(indices, num_images);
         float total_loss = 0.0f;
         int correct = 0, incorrect = 0;
 
+        clock_t start = clock();
         for(int batch = 0; batch < num_images/batch_size; batch++) {
             // RESETTING
             for(int k = 0; k < lay_num; k++) {
-                memset(l[k].bias_gradients, 0, lay_sizes[k+1] * sizeof(float));
+                memset(l[k].bias_gradients, 0, l[k].size * sizeof(float));
                 for(int i = 0; i < l[k].size; i++) {
-                    memset(l[k].weight_gradients[i], 0, lay_sizes[i] * sizeof(float));
+                    memset(l[k].weight_gradients[i], 0, l[k].pre_size * sizeof(float));
                 }
             }
 
             for(int b = 0; b < batch_size; b++) {
                 int idx = indices[batch * batch_size + b];
                 float* image = &images[idx * lay_sizes[0]];
-                float target[lay_sizes[lay_num]] = {0.0f};
-                target[labels[idx]] = 1.0;
+                float* target= (float*)calloc(lay_sizes[lay_num], sizeof(float));
+                target[labels[idx]] = 1.0f;
 
-                feedforward(image, lay_sizes[0], l[0], 1);
+                feedforward(image, lay_sizes[0], &l[0], 1);
                 for(int lay = 0; lay < lay_num-2; lay++) {
-                    feedforward(l[lay].neurons, lay_sizes[lay+1], l[lay+1], 1);
+                    feedforward(l[lay].neurons, lay_sizes[lay+1], &l[lay+1], 1);
                 }
-                feedforward(l[lay_num-2], lay_sizes[lay_num-1], l[lay_num-1], 0);
+                feedforward(l[lay_num-2].neurons, lay_sizes[lay_num-1], &l[lay_num-1], 0);
                 softmax(l[lay_num-1].neurons, lay_sizes[lay_num]);
 
                 int max_idx = 0;
@@ -222,15 +238,22 @@ int train(int lay_num, Layer l[], int lay_sizes[], int num_images, float* images
                 for(int i = 0; i < lay_sizes[lay_num]; i++) {
                     total_loss += -target[i] * logf(l[lay_num-1].neurons[i] + 1e-8);
                 }
-                backpropagation(image, &l, lay_num, target);
+                backpropagation(image, layers_ptr, lay_num, target);
+                free(target);
             }
             for(int lay = 0; lay < lay_num; lay++) {
                 update_parameters(&l[lay], learn_rate, batch_size);
             }
         }
+        double time_spent = (double)(clock() - start) / CLOCKS_PER_SEC;
+        overall_time += time_spent;
         printf("Epoch %d, Loss: %.3f, Accuracy: %.2f%%\nCorrect: %d, Incorrect: %d\n", epoch+1, total_loss/num_images, (float)correct/num_images*100, correct, incorrect);
+        printf("TIME >>> %.4f seconds\n\n", time_spent);
     }
-    save_weights(&l, lay_num, weights_bin_file);
+    save_weights(layers_ptr, lay_num, weights_bin_file);
+    printf("Average epoch time: %.4f\n", overall_time/epochs);
+    free(indices);
+    free(layers_ptr);
 
     return 0;
 }
