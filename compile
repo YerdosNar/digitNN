@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+gcc -o train train_new.c nn_new.c -lm -O3
+gcc -o draw draw_test_new.c -lSDL2 -lSDL2_ttf -lm -O3
+gcc -o test test_nn_new.c -lm
