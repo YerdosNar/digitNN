@@ -3,8 +3,8 @@
 #include <math.h>
 
 #define INPUT 784
-#define HID1 16
-#define HID2 16
+#define HID1 256
+#define HID2 128
 #define OUTPUT 10
 
 typedef struct {

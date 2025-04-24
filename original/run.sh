@@ -54,7 +54,7 @@ if $sdl_exist || $ttf_exist; then
             sudo apt-get install libsdl2-dev -y
         fi
         if $ttf_exist; then
-            sudo apt-get install libsdl-2ttf-dev -y
+            sudo apt-get install libsdl2-ttf-dev -y
         fi
     # As I remember Arch uses yum and pacman
     elif command -v yum >/dev/null; then
