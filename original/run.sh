@@ -30,7 +30,7 @@ sed -i "s/#define HID2 [0-9]*/#define HID2 ${hid2}/" nn.c draw_test.c test_nn.c
 sed -i "s/#define EPOCHS [0-9]*/#define EPOCHS ${epochs}/" nn.c
 sed -i "s/#define LEARNING_RATE [0-9]*\.*[0-9]*/#define LEARNING_RATE ${learn_rate}/" nn.c
 
-gcc nn.c -o nn -O3 -lm || { echo "Compilation of \"nn.c\" failed... And I don't know why."; exit 1; }
+gcc nn.c -o nn -O3 -w -lm || { echo "Compilation of \"nn.c\" failed... And I don't know why."; exit 1; }
 gcc test_nn.c -o test_nn -lm ||{ echo "Compilation of \"test_nn.c\" failed... And I don't know why."; exit 1; }
 
 sdl_exist=false
