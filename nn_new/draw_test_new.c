@@ -308,7 +308,7 @@ int main() {
         printf("Enter Layer%d number of neurons: ", i);
         scanf("%d", &lay_sizes[i]);
     }
-    printf("Enter OUTPUT layer number of neuroms: ");
+    printf("Enter OUTPUT layer number of neurons: ");
     scanf("%d", &lay_sizes[lay_num]);
 
     run(l, lay_num, lay_sizes);
