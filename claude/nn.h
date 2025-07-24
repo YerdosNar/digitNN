@@ -1,3 +1,6 @@
+// nn.h - Neural Network Header File
+// Contains all structure definitions and function declarations
+
 #ifndef NN_H
 #define NN_H
 
@@ -25,36 +28,35 @@ typedef struct {
     float l2_lambda;
 } Network;
 
-//network init and free
-Network *create_network(int *layer_size, int num_layers);
-bool init_layer(Layer *l, int pre_size, int size);
+// Network creation and destruction
+Network* create_network(int *layer_sizes, int num_layers);
 void free_network(Network *net);
 
-//forward
+// Layer operations
+bool init_layer(Layer *l, int pre_size, int size);
+void free_layer(Layer *l);
+
+// Forward propagation
 void feedforward(const float *input, int input_size, Layer *l, bool use_relu);
 void forward_pass(Network *net, const float *input);
 void softmax_stable(float *output, int size);
 
-//backward
+// Backward propagation
 void backward_pass(Network *net, const float *input, const float *target);
 void update_parameters(Network *net, int batch_size);
 
-//train 
-void train_network(Network *net, float *images, unsigned char *labels, int num_samples, int eposhc, int batch_size);
+// Training and validation
+void train_network(Network *net, float *images, unsigned char *labels, 
+                   int num_samples, int epochs, int batch_size);
 float validate_network(Network *net, float *images, unsigned char *labels, int num_samples);
 
-// I/O
-float *read_mnist_images(const char *filename, int *count);
-unsigned char *read_mnist_labels(const char *filename, int *count);
+// I/O operations
+float* read_mnist_images(const char *filename, int *count);
+unsigned char* read_mnist_labels(const char *filename, int *count);
 bool save_network(Network *net, const char *filename);
-Network *load_network(const char *filename);
 
-// utility functions
+// Utility functions
 void shuffle(int *arr, int n);
 int reverse_int(int i);
 
-// activation functions
-static inline float relu(float x);
-static inline float relu_derivative(float x);
-
-#endif
+#endif // NN_H

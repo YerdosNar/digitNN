@@ -1,3 +1,7 @@
+// draw_test.c - Interactive Drawing Interface for Testing the Neural Network
+// Compile with: gcc draw_test.c -o draw_test $(pkg-config --cflags --libs sdl2 SDL2_ttf) -lm -O3
+// Run after training: ./draw_test
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <stdlib.h>
@@ -21,7 +25,136 @@ TTF_Font *font = NULL;
 SDL_Color text_color = {255, 255, 255, 255};
 float pixels[28][28] = {0};
 
-// Neural Network Functions
+// Define the functions that are needed from nn.c
+
+// Initialize layer (simplified version for loading only)
+bool init_layer(Layer *l, int pre_size, int size) {
+    l->size = size;
+    l->pre_size = pre_size;
+    
+    l->neurons = calloc(size, sizeof(float));
+    l->pre_activation = calloc(size, sizeof(float));
+    l->biases = calloc(size, sizeof(float));
+    l->deltas = calloc(size, sizeof(float));
+    
+    if (!l->neurons || !l->pre_activation || !l->biases || !l->deltas) {
+        return false;
+    }
+    
+    l->weights = malloc(size * sizeof(float*));
+    if (!l->weights) {
+        return false;
+    }
+    
+    for (int i = 0; i < size; i++) {
+        l->weights[i] = calloc(pre_size, sizeof(float));
+        if (!l->weights[i]) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// Free layer
+void free_layer(Layer *l) {
+    if (!l) return;
+    
+    if (l->weights) {
+        for (int i = 0; i < l->size; i++) {
+            free(l->weights[i]);
+        }
+        free(l->weights);
+    }
+    
+    free(l->neurons);
+    free(l->pre_activation);
+    free(l->biases);
+    free(l->deltas);
+}
+
+// Free network
+void free_network(Network *net) {
+    if (!net) return;
+    
+    for (int i = 0; i < net->num_layers; i++) {
+        free_layer(&net->layers[i]);
+    }
+    free(net->layers);
+    free(net);
+}
+
+// ReLU activation
+static inline float relu(float x) {
+    return fmaxf(0.0f, x);
+}
+
+// Feedforward
+void feedforward(const float *input, int input_size, Layer *l, bool use_relu) {
+    float *pre_act = l->pre_activation;
+    float *neurons = l->neurons;
+    float *biases = l->biases;
+    float **weights = l->weights;
+    
+    // Initialize with biases
+    memcpy(pre_act, biases, l->size * sizeof(float));
+    
+    // Matrix multiplication
+    for (int i = 0; i < l->size; i++) {
+        float sum = pre_act[i];
+        float *weight_row = weights[i];
+        
+        for (int j = 0; j < input_size; j++) {
+            sum += weight_row[j] * input[j];
+        }
+        
+        pre_act[i] = sum;
+        neurons[i] = use_relu ? relu(sum) : sum;
+    }
+}
+
+// Softmax
+void softmax_stable(float *output, int size) {
+    float max_val = output[0];
+    for (int i = 1; i < size; i++) {
+        if (output[i] > max_val) max_val = output[i];
+    }
+    
+    float sum = 0.0f;
+    for (int i = 0; i < size; i++) {
+        output[i] = expf(output[i] - max_val);
+        sum += output[i];
+    }
+    
+    if (sum > 0) {
+        float inv_sum = 1.0f / sum;
+        for (int i = 0; i < size; i++) {
+            output[i] *= inv_sum;
+        }
+    }
+}
+
+// Forward pass
+void forward_pass(Network *net, const float *input) {
+    // First hidden layer
+    feedforward(input, INPUT, &net->layers[0], true);
+    
+    // Subsequent layers
+    for (int i = 1; i < net->num_layers - 1; i++) {
+        feedforward(net->layers[i-1].neurons, net->layers[i-1].size, 
+                   &net->layers[i], true);
+    }
+    
+    // Output layer (no ReLU)
+    int last = net->num_layers - 1;
+    feedforward(net->layers[last-1].neurons, net->layers[last-1].size,
+                &net->layers[last], false);
+    
+    // Apply softmax
+    softmax_stable(net->layers[last].neurons, net->layers[last].size);
+}
+
+// Load network from file
 Network* load_network(const char *filename) {
     FILE *file = fopen(filename, "rb");
     if (!file) {
@@ -265,6 +398,7 @@ int main() {
     Network *net = load_network("weights.bin");
     if (!net) {
         printf("Failed to load neural network weights!\n");
+        printf("Make sure you have trained the network first by running ./nn\n");
         return 1;
     }
     

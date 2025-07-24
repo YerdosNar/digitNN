@@ -1,6 +1,11 @@
+// test_nn.c - Test Program for Evaluating the Trained Neural Network
+// Compile with: gcc test_nn.c -o test_nn -lm -O3
+// Run after training: ./test_nn
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <stdbool.h>
 #include <time.h>
 
@@ -9,7 +14,130 @@
 #define INPUT 784
 #define OUTPUT 10
 
-// Neural Network Functions
+// Define the functions that are needed from nn.c
+// These are simple implementations just for testing
+
+// Reverse endianness for MNIST files
+int reverse_int(int i) {
+    unsigned char c1, c2, c3, c4;
+    c1 = i & 255;
+    c2 = (i >> 8) & 255;
+    c3 = (i >> 16) & 255;
+    c4 = (i >> 24) & 255;
+    return ((int)c1 << 24) + ((int)c2 << 16) + ((int)c3 << 8) + c4;
+}
+
+// Initialize layer (simplified version for loading only)
+bool init_layer(Layer *l, int pre_size, int size) {
+    l->size = size;
+    l->pre_size = pre_size;
+    
+    l->neurons = calloc(size, sizeof(float));
+    l->pre_activation = calloc(size, sizeof(float));
+    l->biases = calloc(size, sizeof(float));
+    l->deltas = calloc(size, sizeof(float));
+    
+    if (!l->neurons || !l->pre_activation || !l->biases || !l->deltas) {
+        return false;
+    }
+    
+    l->weights = malloc(size * sizeof(float*));
+    if (!l->weights) {
+        return false;
+    }
+    
+    for (int i = 0; i < size; i++) {
+        l->weights[i] = calloc(pre_size, sizeof(float));
+        if (!l->weights[i]) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// Free network
+void free_network(Network *net) {
+    if (!net) return;
+    
+    for (int i = 0; i < net->num_layers; i++) {
+        free_layer(&net->layers[i]);
+    }
+    free(net->layers);
+    free(net);
+}
+
+// ReLU activation
+static inline float relu(float x) {
+    return fmaxf(0.0f, x);
+}
+
+// Feedforward
+void feedforward(const float *input, int input_size, Layer *l, bool use_relu) {
+    float *pre_act = l->pre_activation;
+    float *neurons = l->neurons;
+    float *biases = l->biases;
+    float **weights = l->weights;
+    
+    // Initialize with biases
+    memcpy(pre_act, biases, l->size * sizeof(float));
+    
+    // Matrix multiplication
+    for (int i = 0; i < l->size; i++) {
+        float sum = pre_act[i];
+        float *weight_row = weights[i];
+        
+        for (int j = 0; j < input_size; j++) {
+            sum += weight_row[j] * input[j];
+        }
+        
+        pre_act[i] = sum;
+        neurons[i] = use_relu ? relu(sum) : sum;
+    }
+}
+
+// Softmax
+void softmax_stable(float *output, int size) {
+    float max_val = output[0];
+    for (int i = 1; i < size; i++) {
+        if (output[i] > max_val) max_val = output[i];
+    }
+    
+    float sum = 0.0f;
+    for (int i = 0; i < size; i++) {
+        output[i] = expf(output[i] - max_val);
+        sum += output[i];
+    }
+    
+    if (sum > 0) {
+        float inv_sum = 1.0f / sum;
+        for (int i = 0; i < size; i++) {
+            output[i] *= inv_sum;
+        }
+    }
+}
+
+// Forward pass
+void forward_pass(Network *net, const float *input) {
+    // First hidden layer
+    feedforward(input, INPUT, &net->layers[0], true);
+    
+    // Subsequent layers
+    for (int i = 1; i < net->num_layers - 1; i++) {
+        feedforward(net->layers[i-1].neurons, net->layers[i-1].size, 
+                   &net->layers[i], true);
+    }
+    
+    // Output layer (no ReLU)
+    int last = net->num_layers - 1;
+    feedforward(net->layers[last-1].neurons, net->layers[last-1].size,
+                &net->layers[last], false);
+    
+    // Apply softmax
+    softmax_stable(net->layers[last].neurons, net->layers[last].size);
+}
+
+// Load network from file
 Network* load_network(const char *filename) {
     FILE *file = fopen(filename, "rb");
     if (!file) {
@@ -18,10 +146,17 @@ Network* load_network(const char *filename) {
     }
     
     int num_layers;
-    fread(&num_layers, sizeof(int), 1, file);
+    if (fread(&num_layers, sizeof(int), 1, file) != 1) {
+        fclose(file);
+        return NULL;
+    }
     
     int *sizes = malloc((num_layers + 1) * sizeof(int));
-    fread(sizes, sizeof(int), num_layers + 1, file);
+    if (fread(sizes, sizeof(int), num_layers + 1, file) != (size_t)(num_layers + 1)) {
+        free(sizes);
+        fclose(file);
+        return NULL;
+    }
     
     Network *net = malloc(sizeof(Network));
     net->num_layers = num_layers;
@@ -44,10 +179,22 @@ Network* load_network(const char *filename) {
     // Load weights and biases
     for (int i = 0; i < num_layers; i++) {
         Layer *l = &net->layers[i];
-        fread(l->biases, sizeof(float), l->size, file);
+        if (fread(l->biases, sizeof(float), l->size, file) != (size_t)l->size) {
+            fprintf(stderr, "Failed to read biases for layer %d\n", i);
+            free_network(net);
+            free(sizes);
+            fclose(file);
+            return NULL;
+        }
         
         for (int j = 0; j < l->size; j++) {
-            fread(l->weights[j], sizeof(float), l->pre_size, file);
+            if (fread(l->weights[j], sizeof(float), l->pre_size, file) != (size_t)l->pre_size) {
+                fprintf(stderr, "Failed to read weights for layer %d\n", i);
+                free_network(net);
+                free(sizes);
+                fclose(file);
+                return NULL;
+            }
         }
     }
     
@@ -65,7 +212,11 @@ float* read_mnist_images(const char *filename, int *count) {
     }
     
     int magic_number;
-    fread(&magic_number, sizeof(int), 1, file);
+    if (fread(&magic_number, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Error: Failed to read magic number\n");
+        fclose(file);
+        return NULL;
+    }
     magic_number = reverse_int(magic_number);
     
     if (magic_number != 2051) {
@@ -74,12 +225,20 @@ float* read_mnist_images(const char *filename, int *count) {
         return NULL;
     }
     
-    fread(count, sizeof(int), 1, file);
+    if (fread(count, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Error: Failed to read count\n");
+        fclose(file);
+        return NULL;
+    }
     *count = reverse_int(*count);
     
     int rows, cols;
-    fread(&rows, sizeof(int), 1, file);
-    fread(&cols, sizeof(int), 1, file);
+    if (fread(&rows, sizeof(int), 1, file) != 1 || 
+        fread(&cols, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Error: Failed to read dimensions\n");
+        fclose(file);
+        return NULL;
+    }
     rows = reverse_int(rows);
     cols = reverse_int(cols);
     
@@ -127,7 +286,11 @@ unsigned char* read_mnist_labels(const char *filename, int *count) {
     }
     
     int magic_number;
-    fread(&magic_number, sizeof(int), 1, file);
+    if (fread(&magic_number, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Error: Failed to read magic number\n");
+        fclose(file);
+        return NULL;
+    }
     magic_number = reverse_int(magic_number);
     
     if (magic_number != 2049) {
@@ -136,7 +299,11 @@ unsigned char* read_mnist_labels(const char *filename, int *count) {
         return NULL;
     }
     
-    fread(count, sizeof(int), 1, file);
+    if (fread(count, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Error: Failed to read count\n");
+        fclose(file);
+        return NULL;
+    }
     *count = reverse_int(*count);
     
     unsigned char *labels = malloc(*count);
@@ -294,7 +461,7 @@ void analyze_predictions(Network *net, float *images, unsigned char *labels, int
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
     printf("=== MNIST Neural Network Test ===\n\n");
     
     // Load network
@@ -302,6 +469,7 @@ int main(int argc, char *argv[]) {
     Network *net = load_network("weights.bin");
     if (!net) {
         fprintf(stderr, "Failed to load neural network!\n");
+        fprintf(stderr, "Make sure you have trained the network first by running ./nn\n");
         return 1;
     }
     
@@ -344,4 +512,4 @@ int main(int argc, char *argv[]) {
     free(labels);
     
     return 0;
-}
+} 

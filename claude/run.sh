@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# run.sh - Complete Build and Run Script for MNIST Neural Network
+# Usage: chmod +x run.sh && ./run.sh
 
 # ANSI color codes
 RED='\033[0;31m'
@@ -116,25 +118,6 @@ while ! validate_float "$l2_lambda" 0 0.01; do
     echo -e "${RED}Invalid input!${NC}"
     read -p "Enter a valid L2 lambda between 0-0.01: " l2_lambda
 done
-
-# Create a temporary config file
-cat > nn_config.h << EOF
-#ifndef NN_CONFIG_H
-#define NN_CONFIG_H
-
-#define INPUT 784
-#define HID1 ${hid1}
-#define HID2 ${hid2}
-#define OUTPUT 10
-
-#define EPOCHS ${epochs}
-#define BATCH_SIZE ${batch_size}
-#define LEARNING_RATE ${learn_rate}f
-#define MOMENTUM ${momentum}f
-#define L2_LAMBDA ${l2_lambda}f
-
-#endif
-EOF
 
 echo -e "\n${GREEN}Configuration Summary:${NC}"
 echo "Architecture: 784 -> ${hid1} -> ${hid2} -> 10"
@@ -361,8 +344,5 @@ else
     echo -e "${RED}Training failed!${NC}"
     exit 1
 fi
-
-# Cleanup
-rm -f nn_config.h
 
 echo -e "\n${GREEN}Done!${NC}"
