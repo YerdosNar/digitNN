@@ -1,3 +1,7 @@
+// draw_test.c - Interactive Drawing Interface for Testing the Neural Network
+// Compile: gcc draw_test.c nn_lib.c -o draw_test $(pkg-config --cflags --libs sdl2 SDL2_ttf) -lm -O3
+// Run after training: ./draw_test
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <stdlib.h>
@@ -5,72 +9,17 @@
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>
-
-#include "nn.h"
+#include "nn_lib.h"
 
 #define WIDTH 280
 #define HEIGHT 280
 #define CELL_SIZE (WIDTH / 28)
-
-#define INPUT 784
-#define OUTPUT 10
 
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 TTF_Font *font = NULL;
 SDL_Color text_color = {255, 255, 255, 255};
 float pixels[28][28] = {0};
-
-// Neural Network Functions
-Network* load_network(const char *filename) {
-    FILE *file = fopen(filename, "rb");
-    if (!file) {
-        printf("Could not open weights file: %s\n", filename);
-        return NULL;
-    }
-    
-    int num_layers;
-    fread(&num_layers, sizeof(int), 1, file);
-    
-    int *sizes = malloc((num_layers + 1) * sizeof(int));
-    fread(sizes, sizeof(int), num_layers + 1, file);
-    
-    Network *net = malloc(sizeof(Network));
-    net->num_layers = num_layers;
-    net->layers = malloc(num_layers * sizeof(Layer));
-    
-    // Initialize layers
-    for (int i = 0; i < num_layers; i++) {
-        if (!init_layer(&net->layers[i], sizes[i], sizes[i + 1])) {
-            printf("Failed to initialize layer %d\n", i);
-            free(sizes);
-            fclose(file);
-            return NULL;
-        }
-    }
-    
-    // Load weights and biases
-    for (int i = 0; i < num_layers; i++) {
-        Layer *l = &net->layers[i];
-        fread(l->biases, sizeof(float), l->size, file);
-        
-        for (int j = 0; j < l->size; j++) {
-            fread(l->weights[j], sizeof(float), l->pre_size, file);
-        }
-    }
-    
-    free(sizes);
-    fclose(file);
-    
-    printf("Network loaded successfully!\n");
-    printf("Architecture: %d", INPUT);
-    for (int i = 0; i < net->num_layers; i++) {
-        printf(" -> %d", net->layers[i].size);
-    }
-    printf("\n");
-    
-    return net;
-}
 
 // Drawing functions
 void draw_grid() {
@@ -128,14 +77,14 @@ void draw_confidence(Network *net) {
     // Find the predicted digit
     int predicted = 0;
     float max_conf = conf[0];
-    for (int i = 1; i < OUTPUT; i++) {
+    for (int i = 1; i < OUTPUT_SIZE; i++) {
         if (conf[i] > max_conf) {
             max_conf = conf[i];
             predicted = i;
         }
     }
     
-    for (int i = 0; i < OUTPUT; i++) {
+    for (int i = 0; i < OUTPUT_SIZE; i++) {
         int bar_width = (int)(conf[i] * 150);
         int y_pos = i * 28 + 2;
         
@@ -255,7 +204,7 @@ void normalize_input(float *input) {
     }
     
     // Copy to input array
-    for (int i = 0; i < INPUT; i++) {
+    for (int i = 0; i < INPUT_SIZE; i++) {
         input[i] = pixels[i/28][i%28];
     }
 }
@@ -265,6 +214,7 @@ int main() {
     Network *net = load_network("weights.bin");
     if (!net) {
         printf("Failed to load neural network weights!\n");
+        printf("Make sure you have trained the network first by running ./train_nn\n");
         return 1;
     }
     
@@ -366,7 +316,7 @@ int main() {
         }
         
         // Prepare network input
-        float input[INPUT];
+        float input[INPUT_SIZE];
         normalize_input(input);
         
         // Run prediction

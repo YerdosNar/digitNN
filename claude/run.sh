@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# run.sh - Complete Build and Run Script for MNIST Neural Network
+# Usage: chmod +x run.sh && ./run.sh
 
 # ANSI color codes
 RED='\033[0;31m'
@@ -117,25 +119,6 @@ while ! validate_float "$l2_lambda" 0 0.01; do
     read -p "Enter a valid L2 lambda between 0-0.01: " l2_lambda
 done
 
-# Create a temporary config file
-cat > nn_config.h << EOF
-#ifndef NN_CONFIG_H
-#define NN_CONFIG_H
-
-#define INPUT 784
-#define HID1 ${hid1}
-#define HID2 ${hid2}
-#define OUTPUT 10
-
-#define EPOCHS ${epochs}
-#define BATCH_SIZE ${batch_size}
-#define LEARNING_RATE ${learn_rate}f
-#define MOMENTUM ${momentum}f
-#define L2_LAMBDA ${l2_lambda}f
-
-#endif
-EOF
-
 echo -e "\n${GREEN}Configuration Summary:${NC}"
 echo "Architecture: 784 -> ${hid1} -> ${hid2} -> 10"
 echo "Epochs: ${epochs}"
@@ -148,117 +131,27 @@ echo ""
 # Update the source files with the configuration
 echo -e "${BLUE}Updating source files...${NC}"
 
-# Update nn.c
-sed -i "s/#define HID1 [0-9]*/#define HID1 ${hid1}/" nn.c 2>/dev/null || \
-sed -i '' "s/#define HID1 [0-9]*/#define HID1 ${hid1}/" nn.c
+# Update train_nn.c
+sed -i "s/#define HID1 [0-9]*/#define HID1 ${hid1}/" train_nn.c 2>/dev/null || \
+sed -i '' "s/#define HID1 [0-9]*/#define HID1 ${hid1}/" train_nn.c
 
-sed -i "s/#define HID2 [0-9]*/#define HID2 ${hid2}/" nn.c 2>/dev/null || \
-sed -i '' "s/#define HID2 [0-9]*/#define HID2 ${hid2}/" nn.c
+sed -i "s/#define HID2 [0-9]*/#define HID2 ${hid2}/" train_nn.c 2>/dev/null || \
+sed -i '' "s/#define HID2 [0-9]*/#define HID2 ${hid2}/" train_nn.c
 
-sed -i "s/#define EPOCHS [0-9]*/#define EPOCHS ${epochs}/" nn.c 2>/dev/null || \
-sed -i '' "s/#define EPOCHS [0-9]*/#define EPOCHS ${epochs}/" nn.c
+sed -i "s/#define EPOCHS [0-9]*/#define EPOCHS ${epochs}/" train_nn.c 2>/dev/null || \
+sed -i '' "s/#define EPOCHS [0-9]*/#define EPOCHS ${epochs}/" train_nn.c
 
-sed -i "s/#define BATCH_SIZE [0-9]*/#define BATCH_SIZE ${batch_size}/" nn.c 2>/dev/null || \
-sed -i '' "s/#define BATCH_SIZE [0-9]*/#define BATCH_SIZE ${batch_size}/" nn.c
+sed -i "s/#define BATCH_SIZE [0-9]*/#define BATCH_SIZE ${batch_size}/" train_nn.c 2>/dev/null || \
+sed -i '' "s/#define BATCH_SIZE [0-9]*/#define BATCH_SIZE ${batch_size}/" train_nn.c
 
-sed -i "s/#define LEARNING_RATE [0-9]*\.*[0-9]*f*/#define LEARNING_RATE ${learn_rate}f/" nn.c 2>/dev/null || \
-sed -i '' "s/#define LEARNING_RATE [0-9]*\.*[0-9]*f*/#define LEARNING_RATE ${learn_rate}f/" nn.c
+sed -i "s/#define LEARNING_RATE [0-9]*\.*[0-9]*f*/#define LEARNING_RATE ${learn_rate}f/" train_nn.c 2>/dev/null || \
+sed -i '' "s/#define LEARNING_RATE [0-9]*\.*[0-9]*f*/#define LEARNING_RATE ${learn_rate}f/" train_nn.c
 
-sed -i "s/#define MOMENTUM [0-9]*\.*[0-9]*f*/#define MOMENTUM ${momentum}f/" nn.c 2>/dev/null || \
-sed -i '' "s/#define MOMENTUM [0-9]*\.*[0-9]*f*/#define MOMENTUM ${momentum}f/" nn.c
+sed -i "s/#define MOMENTUM [0-9]*\.*[0-9]*f*/#define MOMENTUM ${momentum}f/" train_nn.c 2>/dev/null || \
+sed -i '' "s/#define MOMENTUM [0-9]*\.*[0-9]*f*/#define MOMENTUM ${momentum}f/" train_nn.c
 
-sed -i "s/#define L2_LAMBDA [0-9]*\.*[0-9]*f*/#define L2_LAMBDA ${l2_lambda}f/" nn.c 2>/dev/null || \
-sed -i '' "s/#define L2_LAMBDA [0-9]*\.*[0-9]*f*/#define L2_LAMBDA ${l2_lambda}f/" nn.c
-
-# Compilation
-echo -e "${BLUE}Compiling neural network...${NC}"
-
-# Detect compiler and set flags
-if command -v gcc >/dev/null; then
-    CC=gcc
-elif command -v clang >/dev/null; then
-    CC=clang
-else
-    echo -e "${RED}Error: No C compiler found!${NC}"
-    exit 1
-fi
-
-# Compile main neural network
-$CC nn.c -o nn -O3 -march=native -ffast-math -lm -Wall -Wextra || {
-    echo -e "${RED}Compilation of nn.c failed!${NC}"
-    exit 1
-}
-
-# Compile test program
-$CC test_nn.c -o test_nn -O3 -march=native -lm -Wall -Wextra || {
-    echo -e "${RED}Compilation of test_nn.c failed!${NC}"
-    exit 1
-}
-
-# Check for SDL2 dependencies
-echo -e "\n${BLUE}Checking SDL2 dependencies...${NC}"
-
-sdl2_missing=false
-sdl2_ttf_missing=false
-
-if ! pkg-config --exists sdl2 2>/dev/null; then
-    sdl2_missing=true
-fi
-
-if ! pkg-config --exists SDL2_ttf 2>/dev/null; then
-    sdl2_ttf_missing=true
-fi
-
-if $sdl2_missing || $sdl2_ttf_missing; then
-    echo -e "${YELLOW}SDL2 libraries not found. Attempting to install...${NC}"
-    
-    # Detect package manager and install
-    if command -v apt-get >/dev/null; then
-        sudo apt-get update
-        if $sdl2_missing; then
-            sudo apt-get install -y libsdl2-dev
-        fi
-        if $sdl2_ttf_missing; then
-            sudo apt-get install -y libsdl2-ttf-dev
-        fi
-    elif command -v yum >/dev/null; then
-        if $sdl2_missing; then
-            sudo yum install -y SDL2-devel
-        fi
-        if $sdl2_ttf_missing; then
-            sudo yum install -y SDL2_ttf-devel
-        fi
-    elif command -v pacman >/dev/null; then
-        packages=()
-        if $sdl2_missing; then
-            packages+=("sdl2")
-        fi
-        if $sdl2_ttf_missing; then
-            packages+=("sdl2_ttf")
-        fi
-        sudo pacman -S --noconfirm "${packages[@]}"
-    elif command -v brew >/dev/null; then
-        if $sdl2_missing; then
-            brew install sdl2
-        fi
-        if $sdl2_ttf_missing; then
-            brew install sdl2_ttf
-        fi
-    else
-        echo -e "${YELLOW}Warning: Could not install SDL2 automatically.${NC}"
-        echo "Please install SDL2 and SDL2_ttf manually if you want to use the drawing interface."
-    fi
-fi
-
-# Compile drawing test if SDL2 is available
-if pkg-config --exists sdl2 SDL2_ttf 2>/dev/null; then
-    echo -e "${BLUE}Compiling drawing interface...${NC}"
-    $CC draw_test.c -o draw_test $(pkg-config --cflags --libs sdl2 SDL2_ttf) -lm -O3 -Wall -Wextra || {
-        echo -e "${YELLOW}Warning: Could not compile drawing interface${NC}"
-    }
-else
-    echo -e "${YELLOW}SDL2 not available. Skipping drawing interface compilation.${NC}"
-fi
+sed -i "s/#define L2_LAMBDA [0-9]*\.*[0-9]*f*/#define L2_LAMBDA ${l2_lambda}f/" train_nn.c 2>/dev/null || \
+sed -i '' "s/#define L2_LAMBDA [0-9]*\.*[0-9]*f*/#define L2_LAMBDA ${l2_lambda}f/" train_nn.c
 
 # Check for training data
 echo -e "\n${BLUE}Checking for MNIST data files...${NC}"
@@ -302,12 +195,50 @@ if [ ${#missing_files[@]} -gt 0 ]; then
     fi
 fi
 
+# Check for SDL2 dependencies
+echo -e "\n${BLUE}Checking SDL2 dependencies...${NC}"
+
+sdl2_missing=false
+sdl2_ttf_missing=false
+
+if ! pkg-config --exists sdl2 2>/dev/null; then
+    sdl2_missing=true
+fi
+
+if ! pkg-config --exists SDL2_ttf 2>/dev/null; then
+    sdl2_ttf_missing=true
+fi
+
+if $sdl2_missing || $sdl2_ttf_missing; then
+    echo -e "${YELLOW}SDL2 libraries not found. Drawing interface will not be compiled.${NC}"
+    echo "To enable the drawing interface, install SDL2 and SDL2_ttf:"
+    echo "  Ubuntu/Debian: sudo apt-get install libsdl2-dev libsdl2-ttf-dev"
+    echo "  Fedora/RHEL: sudo yum install SDL2-devel SDL2_ttf-devel"
+    echo "  Arch: sudo pacman -S sdl2 sdl2_ttf"
+    echo "  macOS: brew install sdl2 sdl2_ttf"
+    echo ""
+fi
+
+# Compilation
+echo -e "${BLUE}Compiling neural network...${NC}"
+
+# Clean previous builds
+make clean >/dev/null 2>&1
+
+# Build all targets
+if ! make all; then
+    echo -e "${RED}Compilation failed!${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}Compilation successful!${NC}"
+
 # Start training
 echo -e "\n${GREEN}Starting neural network training...${NC}"
 echo "This may take several minutes depending on your hardware."
 echo ""
 
-time ./nn
+time ./train_nn
 
 if [ $? -eq 0 ]; then
     echo -e "\n${GREEN}Training completed successfully!${NC}"
@@ -361,8 +292,5 @@ else
     echo -e "${RED}Training failed!${NC}"
     exit 1
 fi
-
-# Cleanup
-rm -f nn_config.h
 
 echo -e "\n${GREEN}Done!${NC}"

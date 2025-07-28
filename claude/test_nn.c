@@ -1,161 +1,12 @@
+// test_nn.c - Test Program for Evaluating the Trained Neural Network
+// Compile: gcc test_nn.c nn_lib.c -o test_nn -lm -O3 -march=native
+// Run after training: ./test_nn
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include <time.h>
-
-#include "nn.h"
-
-#define INPUT 784
-#define OUTPUT 10
-
-// Neural Network Functions
-Network* load_network(const char *filename) {
-    FILE *file = fopen(filename, "rb");
-    if (!file) {
-        fprintf(stderr, "Error: Cannot open %s\n", filename);
-        return NULL;
-    }
-    
-    int num_layers;
-    fread(&num_layers, sizeof(int), 1, file);
-    
-    int *sizes = malloc((num_layers + 1) * sizeof(int));
-    fread(sizes, sizeof(int), num_layers + 1, file);
-    
-    Network *net = malloc(sizeof(Network));
-    net->num_layers = num_layers;
-    net->layers = malloc(num_layers * sizeof(Layer));
-    net->learning_rate = 0.001f;
-    net->momentum = 0.9f;
-    net->l2_lambda = 0.0001f;
-    
-    // Initialize layers
-    for (int i = 0; i < num_layers; i++) {
-        if (!init_layer(&net->layers[i], sizes[i], sizes[i + 1])) {
-            fprintf(stderr, "Failed to initialize layer %d\n", i);
-            free(sizes);
-            fclose(file);
-            free(net);
-            return NULL;
-        }
-    }
-    
-    // Load weights and biases
-    for (int i = 0; i < num_layers; i++) {
-        Layer *l = &net->layers[i];
-        fread(l->biases, sizeof(float), l->size, file);
-        
-        for (int j = 0; j < l->size; j++) {
-            fread(l->weights[j], sizeof(float), l->pre_size, file);
-        }
-    }
-    
-    free(sizes);
-    fclose(file);
-    return net;
-}
-
-// MNIST reading functions
-float* read_mnist_images(const char *filename, int *count) {
-    FILE *file = fopen(filename, "rb");
-    if (!file) {
-        fprintf(stderr, "Error: Cannot open %s\n", filename);
-        return NULL;
-    }
-    
-    int magic_number;
-    fread(&magic_number, sizeof(int), 1, file);
-    magic_number = reverse_int(magic_number);
-    
-    if (magic_number != 2051) {
-        fprintf(stderr, "Error: Invalid magic number in %s\n", filename);
-        fclose(file);
-        return NULL;
-    }
-    
-    fread(count, sizeof(int), 1, file);
-    *count = reverse_int(*count);
-    
-    int rows, cols;
-    fread(&rows, sizeof(int), 1, file);
-    fread(&cols, sizeof(int), 1, file);
-    rows = reverse_int(rows);
-    cols = reverse_int(cols);
-    
-    if (rows != 28 || cols != 28) {
-        fprintf(stderr, "Error: Expected 28x28 images\n");
-        fclose(file);
-        return NULL;
-    }
-    
-    size_t total_pixels = (size_t)(*count) * rows * cols;
-    float *images = malloc(total_pixels * sizeof(float));
-    unsigned char *buffer = malloc(total_pixels);
-    
-    if (!images || !buffer) {
-        free(images);
-        free(buffer);
-        fclose(file);
-        return NULL;
-    }
-    
-    size_t read = fread(buffer, sizeof(unsigned char), total_pixels, file);
-    if (read != total_pixels) {
-        fprintf(stderr, "Error: Could not read all image data\n");
-        free(images);
-        free(buffer);
-        fclose(file);
-        return NULL;
-    }
-    
-    // Normalize to [0, 1]
-    for (size_t i = 0; i < total_pixels; i++) {
-        images[i] = buffer[i] / 255.0f;
-    }
-    
-    free(buffer);
-    fclose(file);
-    return images;
-}
-
-unsigned char* read_mnist_labels(const char *filename, int *count) {
-    FILE *file = fopen(filename, "rb");
-    if (!file) {
-        fprintf(stderr, "Error: Cannot open %s\n", filename);
-        return NULL;
-    }
-    
-    int magic_number;
-    fread(&magic_number, sizeof(int), 1, file);
-    magic_number = reverse_int(magic_number);
-    
-    if (magic_number != 2049) {
-        fprintf(stderr, "Error: Invalid magic number in %s\n", filename);
-        fclose(file);
-        return NULL;
-    }
-    
-    fread(count, sizeof(int), 1, file);
-    *count = reverse_int(*count);
-    
-    unsigned char *labels = malloc(*count);
-    if (!labels) {
-        fclose(file);
-        return NULL;
-    }
-    
-    size_t read = fread(labels, sizeof(unsigned char), *count, file);
-    if (read != (size_t)*count) {
-        fprintf(stderr, "Error: Could not read all label data\n");
-        free(labels);
-        fclose(file);
-        return NULL;
-    }
-    
-    fclose(file);
-    return labels;
-}
+#include "nn_lib.h"
 
 // Analysis functions
 void analyze_predictions(Network *net, float *images, unsigned char *labels, int num_samples) {
@@ -170,14 +21,14 @@ void analyze_predictions(Network *net, float *images, unsigned char *labels, int
     
     for (int i = 0; i < num_samples; i++) {
         // Forward pass
-        forward_pass(net, &images[i * INPUT]);
+        forward_pass(net, &images[i * INPUT_SIZE]);
         
         // Get prediction
         Layer *output_layer = &net->layers[net->num_layers - 1];
         int predicted = 0;
         float max_prob = output_layer->neurons[0];
         
-        for (int j = 1; j < OUTPUT; j++) {
+        for (int j = 1; j < OUTPUT_SIZE; j++) {
             if (output_layer->neurons[j] > max_prob) {
                 max_prob = output_layer->neurons[j];
                 predicted = j;
@@ -294,7 +145,7 @@ void analyze_predictions(Network *net, float *images, unsigned char *labels, int
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
     printf("=== MNIST Neural Network Test ===\n\n");
     
     // Load network
@@ -302,14 +153,9 @@ int main(int argc, char *argv[]) {
     Network *net = load_network("weights.bin");
     if (!net) {
         fprintf(stderr, "Failed to load neural network!\n");
+        fprintf(stderr, "Make sure you have trained the network first by running ./train_nn\n");
         return 1;
     }
-    
-    printf("Network architecture: %d", INPUT);
-    for (int i = 0; i < net->num_layers; i++) {
-        printf(" -> %d", net->layers[i].size);
-    }
-    printf("\n\n");
     
     // Load test data
     printf("Loading test data...\n");
