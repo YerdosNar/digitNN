@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-if [ "$1" == "clean" ]; then
-    rm train draw test 
-else
-    gcc -o train train_new.c nn_new.c -lm -O3 -w
-    gcc -o draw draw_test_new.c -lSDL2 -lSDL2_ttf -lm
-    gcc -o test test_nn_new.c -lm
-fi
