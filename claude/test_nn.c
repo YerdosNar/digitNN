@@ -160,8 +160,8 @@ int main(void) {
     // Load test data
     printf("Loading test data...\n");
     int num_images, num_labels;
-    float *images = read_mnist_images("t10k-images-idx3-ubyte", &num_images);
-    unsigned char *labels = read_mnist_labels("t10k-labels-idx1-ubyte", &num_labels);
+    float *images = read_mnist_images("../files/t10k-images-idx3-ubyte", &num_images);
+    unsigned char *labels = read_mnist_labels("../files/t10k-labels-idx1-ubyte", &num_labels);
     
     if (!images || !labels) {
         fprintf(stderr, "Failed to load test data!\n");

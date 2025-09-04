@@ -282,9 +282,9 @@ int run() {
     init(&l1, &l2, &l3);
 
     int num_images;
-    float* images = read_mnist_images("train-images-idx3-ubyte", &num_images);
+    float* images = read_mnist_images("../files/train-images-idx3-ubyte", &num_images);
     int num_labels;
-    unsigned char* labels = read_mnist_labels("train-labels-idx1-ubyte", &num_labels);
+    unsigned char* labels = read_mnist_labels("../files/train-labels-idx1-ubyte", &num_labels);
 
     if(num_images != num_labels) {
         printf("Mismatch! Number of images and labels are different!\n");

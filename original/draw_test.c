@@ -244,7 +244,7 @@ void run() {
     }
     TTF_Init();
 
-    font = TTF_OpenFont("arial.ttf", 14);
+    font = TTF_OpenFont("../files/arial.ttf", 14);
     if(!font) {
         printf("Failed to load font: %s\n", TTF_GetError());
         exit(1);

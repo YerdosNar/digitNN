@@ -67,9 +67,9 @@ unsigned char* read_mnist_labels(const char* filename, int* count) {
 
 int main() {
     int num_images;
-    float *images = read_mnist_images("train-images-idx3-ubyte", &num_images);
+    float *images = read_mnist_images("../files/train-images-idx3-ubyte", &num_images);
     int num_labels;
-    unsigned char *labels = read_mnist_labels("train-labels-idx1-ubyte", &num_labels);
+    unsigned char *labels = read_mnist_labels("../files/train-labels-idx1-ubyte", &num_labels);
 
     // Creating Layers
     int lay_num;

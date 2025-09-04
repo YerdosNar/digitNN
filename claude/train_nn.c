@@ -8,11 +8,11 @@
 #include "nn_lib.h"
 
 // Network architecture
-#define HID1 256
-#define HID2 128
+#define HID1 128
+#define HID2 64
 
 // Training hyperparameters
-#define EPOCHS 50
+#define EPOCHS 30
 #define BATCH_SIZE 64
 #define LEARNING_RATE 0.001f
 #define MOMENTUM 0.9f
@@ -23,8 +23,8 @@ int main() {
     
     // Load training data
     int num_train_images, num_train_labels;
-    float *train_images = read_mnist_images("train-images-idx3-ubyte", &num_train_images);
-    unsigned char *train_labels = read_mnist_labels("train-labels-idx1-ubyte", &num_train_labels);
+    float *train_images = read_mnist_images("../files/train-images-idx3-ubyte", &num_train_images);
+    unsigned char *train_labels = read_mnist_labels("../files/train-labels-idx1-ubyte", &num_train_labels);
     
     if (!train_images || !train_labels || num_train_images != num_train_labels) {
         fprintf(stderr, "Error loading training data\n");
@@ -38,8 +38,8 @@ int main() {
     
     // Load test data
     int num_test_images, num_test_labels;
-    float *test_images = read_mnist_images("t10k-images-idx3-ubyte", &num_test_images);
-    unsigned char *test_labels = read_mnist_labels("t10k-labels-idx1-ubyte", &num_test_labels);
+    float *test_images = read_mnist_images("../files/t10k-images-idx3-ubyte", &num_test_images);
+    unsigned char *test_labels = read_mnist_labels("../files/t10k-labels-idx1-ubyte", &num_test_labels);
     
     if (!test_images || !test_labels || num_test_images != num_test_labels) {
         fprintf(stderr, "Error loading test data\n");

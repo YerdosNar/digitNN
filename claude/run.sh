@@ -156,8 +156,8 @@ sed -i '' "s/#define L2_LAMBDA [0-9]*\.*[0-9]*f*/#define L2_LAMBDA ${l2_lambda}f
 # Check for training data
 echo -e "\n${BLUE}Checking for MNIST data files...${NC}"
 
-training_files=("train-images-idx3-ubyte" "train-labels-idx1-ubyte")
-test_files=("t10k-images-idx3-ubyte" "t10k-labels-idx1-ubyte")
+training_files=("../files/train-images-idx3-ubyte" "../files/train-labels-idx1-ubyte")
+test_files=("../files/t10k-images-idx3-ubyte" "../files/t10k-labels-idx1-ubyte")
 missing_files=()
 
 for file in "${training_files[@]}" "${test_files[@]}"; do

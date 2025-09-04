@@ -234,7 +234,7 @@ int main() {
     
     // Try multiple font paths
     const char* font_paths[] = {
-        "arial.ttf",
+        "arial.ttf", "../files/arial.ttf", 
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/System/Library/Fonts/Helvetica.ttc",

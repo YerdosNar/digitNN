@@ -175,9 +175,9 @@ void run(Layer *l, int lay_num, int lay_sizes[]) {
     load_weights(lay_ptr, lay_num, "weights.bin");
 
     int num_images;
-    float *input = read_mnist_images("t10k-images-idx3-ubyte", &num_images);
+    float *input = read_mnist_images("../files/t10k-images-idx3-ubyte", &num_images);
     int num_labels;
-    unsigned char *labels = read_mnist_labels("t10k-labels-idx1-ubyte", &num_labels);
+    unsigned char *labels = read_mnist_labels("../files/t10k-labels-idx1-ubyte", &num_labels);
 
     if(num_images != num_labels) {
         printf("Mismatch! Number of images and labels are different!\n");
