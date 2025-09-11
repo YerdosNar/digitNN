@@ -12,9 +12,9 @@
 #define HID2 64
 
 // Training hyperparameters
-#define EPOCHS 30
-#define BATCH_SIZE 64
-#define LEARNING_RATE 0.001f
+#define EPOCHS 50
+#define BATCH_SIZE 100
+#define LEARNING_RATE 0.01f
 #define MOMENTUM 0.9f
 #define L2_LAMBDA 0.0001f
 

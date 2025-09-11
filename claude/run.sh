@@ -16,7 +16,7 @@ validate_number() {
     local value=$1
     local min=$2
     local max=$3
-    
+
     if [[ ! "$value" =~ ^[0-9]+$ ]] || [ "$value" -lt "$min" ] || [ "$value" -gt "$max" ]; then
         return 1
     fi
@@ -28,11 +28,11 @@ validate_float() {
     local value=$1
     local min=$2
     local max=$3
-    
+
     if [[ ! "$value" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
         return 1
     fi
-    
+
     # Use bc for float comparison
     if (( $(echo "$value < $min" | bc -l) )) || (( $(echo "$value > $max" | bc -l) )); then
         return 1
@@ -63,9 +63,9 @@ echo ""
 # Hidden layer 1
 read -p "Enter number of neurons in the first hidden layer [default=128]: " hid1
 hid1=${hid1:-128}
-while ! validate_number "$hid1" 10 512; do
+while ! validate_number "$hid1" 10 516; do
     echo -e "${RED}Invalid input!${NC}"
-    read -p "Enter a valid number between 10-512: " hid1
+    read -p "Enter a valid number between 10-516: " hid1
 done
 
 # Hidden layer 2
@@ -174,18 +174,18 @@ if [ ${#missing_files[@]} -gt 0 ]; then
     echo "http://yann.lecun.com/exdb/mnist/"
     echo ""
     read -p "Do you want me to try downloading them automatically? (y/n): " download_choice
-    
+
     if [[ "$download_choice" =~ ^[Yy]$ ]]; then
         echo -e "${BLUE}Downloading MNIST dataset...${NC}"
-        
+
         # Download training set
         wget -nc http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz
         wget -nc http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz
-        
+
         # Download test set
         wget -nc http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz
         wget -nc http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz
-        
+
         # Extract files
         echo -e "${BLUE}Extracting files...${NC}"
         gunzip -f *.gz
@@ -242,14 +242,14 @@ time ./train_nn
 
 if [ $? -eq 0 ]; then
     echo -e "\n${GREEN}Training completed successfully!${NC}"
-    
+
     # Test the network
     echo -e "\n${BLUE}How would you like to test the neural network?${NC}"
     echo "[1] Drawing interface (interactive)"
     echo "[2] Test set evaluation (batch)"
     echo "[3] Both"
     echo "[4] Skip testing"
-    
+
     while true; do
         read -p "Enter your choice (1-4): " choice
         case $choice in

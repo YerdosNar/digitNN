@@ -6,7 +6,7 @@
 #        make clean   (remove compiled files)
 
 CC = gcc
-CFLAGS = -O3 -march=native -ffast-math -Wall -Wextra
+CFLAGS = -march=native -Wall -Wextra -O3 --fast-math
 LDFLAGS = -lm
 
 # SDL flags (if available)
