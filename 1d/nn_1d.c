@@ -174,7 +174,7 @@ void save_weights(Layer **l, int lay_num, const char* file) {
     fclose(f);
 }
 
-int train(int lay_num, Layer *l, int lay_sizes[], int num_images, float* images, int num_labels, unsigned char* labels, int epochs, int batch_size, float learn_rate, const char *weights_bin_file) {
+int train(int lay_num, Layer *l, int lay_sizes[], int num_images, float* images, unsigned char* labels, int epochs, int batch_size, float learn_rate, const char *weights_bin_file) {
     init(l, lay_sizes, lay_num);
     int* indices = (int*)malloc(num_images * sizeof(int));
     for(int i = 0; i < num_images; i++) {

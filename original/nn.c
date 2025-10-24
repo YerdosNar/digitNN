@@ -5,8 +5,8 @@
 #include <time.h>
 
 #define INPUT 784
-#define HID1 128
-#define HID2 64
+#define HID1 16
+#define HID2 16
 #define OUTPUT 10
 
 #define EPOCHS 50

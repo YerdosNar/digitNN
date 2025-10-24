@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # run.sh - Complete Build and Run Script for MNIST Neural Network
-# Usage: chmod +x run.sh && ./run.sh
 
 # ANSI color codes
 RED='\033[0;31m'
@@ -203,10 +202,54 @@ sdl2_ttf_missing=false
 
 if ! pkg-config --exists sdl2 2>/dev/null; then
     sdl2_missing=true
+    echo -e "${YELLOW}SDL2 is missing${NC}"
+    read -p "Should I try to install? [Y/n]" INSTALL_SDL2
+    INSTALL_SDL2=${INSTALL_SDL2:-"Y"}
+    if [[ "$INSTALL_SDL2" == "Y" || "$INSTALL_SDL2" == "y" ]]; then
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            echo -e "OS: ${YELLOW}$NAME${NC}"
+            case "$ID" in
+                arch)
+                    sudo pacman -S --noconfirm sdl2 && sdl2_missing=false ;;
+                ubuntu|kali|debian)
+                    sudo apt install libsdl2-dev -y && sdl2_missing=false ;;
+                fedora)
+                    sudo yum install SDL2-devel -y && sdl2_missing=false ;;
+                *)
+                    echo "Unknown OS"
+            esac
+        fi
+    else
+        echo "Not \"YES\" option"
+        echo "Skipping installation"
+    fi
 fi
 
 if ! pkg-config --exists SDL2_ttf 2>/dev/null; then
     sdl2_ttf_missing=true
+    echo -e "${YELLOW}SDL2_ttf is missing${NC}"
+    read -p "Should I try to install? [Y/n]" INSTALL
+    INSTALL=${INSTALL:-"Y"}
+    if [[ "$INSTALL" == "Y" || "$INSTALL" == "y" ]]; then
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            echo -e "OS: ${YELLOW}$NAME${NC}"
+            case "$ID" in
+                arch)
+                    sudo pacman -S --noconfirm sdl2_ttf && sdl2_ttf_missing=false ;;
+                ubuntu|debian|kali)
+                    sudo apt install libsdl2-ttf-dev -y && sdl2_ttf_missing=false ;;
+                ffedora)
+                    sudo yum install SDL2_ttf-devel -y && sdl2_ttf_missing=false ;;
+                *)
+                    echo "Unknown OS"
+            esac
+        fi
+    else
+        echo "Not \"YES\" option"
+        echo "Skipping installation"
+    fi
 fi
 
 if $sdl2_missing || $sdl2_ttf_missing; then
@@ -216,6 +259,7 @@ if $sdl2_missing || $sdl2_ttf_missing; then
     echo "  Fedora/RHEL: sudo yum install SDL2-devel SDL2_ttf-devel"
     echo "  Arch: sudo pacman -S sdl2 sdl2_ttf"
     echo "  macOS: brew install sdl2 sdl2_ttf"
+    read -p "Attempt to install"
     echo ""
 fi
 

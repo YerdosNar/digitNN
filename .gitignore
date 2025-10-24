@@ -1,0 +1,16 @@
+kmeans/
+
+1d/weights.bin
+1d/draw_1d
+1d/test_1d
+1d/train_1d
+
+enhanced/weights.bin
+enhanced/test_nn
+enhanced/draw_test
+enhanced/train_nn
+
+original/draw_test
+original/test_nn
+original/nn
+original/weights.bin

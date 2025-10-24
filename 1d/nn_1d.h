@@ -20,6 +20,6 @@ void softmax(float output[], int size);
 void backpropagation(float input[], Layer **l, int lay_num, float target[]);
 void update_parameters(Layer *l, float learn_rate, int batch_size);
 void save_weights(Layer **l, int lay_num, const char* file);
-int train(int lay_num, Layer *l, int lay_sizes[], int num_images, float *images, int num_labels, unsigned char* labels, int epochs, int batch_size, float learn_rate, const char *weights_bin_file);
+int train(int lay_num, Layer *l, int lay_sizes[], int num_images, float *images, unsigned char* labels, int epochs, int batch_size, float learn_rate, const char *weights_bin_file);
 
 #endif

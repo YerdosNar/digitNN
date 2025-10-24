@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 #include "nn_lib.h"
 
@@ -12,48 +11,48 @@
 void analyze_predictions(Network *net, float *images, unsigned char *labels, int num_samples) {
     int confusion_matrix[10][10] = {0};
     int correct = 0;
-    
+
     // Per-class statistics
     int class_total[10] = {0};
     int class_correct[10] = {0};
-    
+
     clock_t start = clock();
-    
+
     for (int i = 0; i < num_samples; i++) {
         // Forward pass
         forward_pass(net, &images[i * INPUT_SIZE]);
-        
+
         // Get prediction
         Layer *output_layer = &net->layers[net->num_layers - 1];
         int predicted = 0;
         float max_prob = output_layer->neurons[0];
-        
+
         for (int j = 1; j < OUTPUT_SIZE; j++) {
             if (output_layer->neurons[j] > max_prob) {
                 max_prob = output_layer->neurons[j];
                 predicted = j;
             }
         }
-        
+
         int actual = labels[i];
         confusion_matrix[actual][predicted]++;
         class_total[actual]++;
-        
+
         if (predicted == actual) {
             correct++;
             class_correct[actual]++;
         }
-        
+
         // Progress indicator
         if ((i + 1) % 1000 == 0) {
             printf("\rProcessed %d/%d samples", i + 1, num_samples);
             fflush(stdout);
         }
     }
-    
+
     double elapsed = (double)(clock() - start) / CLOCKS_PER_SEC;
     printf("\rProcessed %d/%d samples - Done!\n\n", num_samples, num_samples);
-    
+
     // Overall accuracy
     float overall_accuracy = 100.0f * correct / num_samples;
     printf("=== Overall Performance ===\n");
@@ -61,20 +60,20 @@ void analyze_predictions(Network *net, float *images, unsigned char *labels, int
     printf("Correct predictions: %d\n", correct);
     printf("Incorrect predictions: %d\n", num_samples - correct);
     printf("Overall accuracy: %.2f%%\n", overall_accuracy);
-    printf("Processing time: %.2f seconds (%.1f samples/sec)\n\n", 
+    printf("Processing time: %.2f seconds (%.1f samples/sec)\n\n",
            elapsed, num_samples / elapsed);
-    
+
     // Per-class accuracy
     printf("=== Per-Class Performance ===\n");
     printf("Digit | Samples | Correct | Accuracy\n");
     printf("------|---------|---------|----------\n");
     for (int i = 0; i < 10; i++) {
-        float class_accuracy = class_total[i] > 0 ? 
+        float class_accuracy = class_total[i] > 0 ?
             100.0f * class_correct[i] / class_total[i] : 0.0f;
-        printf("  %d   |  %5d  |  %5d  | %6.2f%%\n", 
+        printf("  %d   |  %5d  |  %5d  | %6.2f%%\n",
                i, class_total[i], class_correct[i], class_accuracy);
     }
-    
+
     // Confusion matrix
     printf("\n=== Confusion Matrix ===\n");
     printf("Rows: Actual, Columns: Predicted\n");
@@ -88,7 +87,7 @@ void analyze_predictions(Network *net, float *images, unsigned char *labels, int
         printf("-----");
     }
     printf("\n");
-    
+
     for (int i = 0; i < 10; i++) {
         printf("  %d |", i);
         for (int j = 0; j < 10; j++) {
@@ -104,7 +103,7 @@ void analyze_predictions(Network *net, float *images, unsigned char *labels, int
         }
         printf("\n");
     }
-    
+
     // Find most confused pairs
     printf("\n=== Most Confused Pairs ===\n");
     typedef struct {
@@ -112,10 +111,10 @@ void analyze_predictions(Network *net, float *images, unsigned char *labels, int
         int predicted;
         int count;
     } ConfusionPair;
-    
+
     ConfusionPair pairs[90];  // 10*9 possible confusion pairs
     int pair_count = 0;
-    
+
     for (int i = 0; i < 10; i++) {
         for (int j = 0; j < 10; j++) {
             if (i != j && confusion_matrix[i][j] > 0) {
@@ -126,7 +125,7 @@ void analyze_predictions(Network *net, float *images, unsigned char *labels, int
             }
         }
     }
-    
+
     // Sort by count (simple bubble sort)
     for (int i = 0; i < pair_count - 1; i++) {
         for (int j = 0; j < pair_count - i - 1; j++) {
@@ -137,17 +136,17 @@ void analyze_predictions(Network *net, float *images, unsigned char *labels, int
             }
         }
     }
-    
+
     printf("Actual -> Predicted (Count)\n");
     for (int i = 0; i < 5 && i < pair_count; i++) {
-        printf("   %d   ->     %d     (%d times)\n", 
+        printf("   %d   ->     %d     (%d times)\n",
                pairs[i].actual, pairs[i].predicted, pairs[i].count);
     }
 }
 
 int main(void) {
     printf("=== MNIST Neural Network Test ===\n\n");
-    
+
     // Load network
     printf("Loading neural network...\n");
     Network *net = load_network("weights.bin");
@@ -156,13 +155,13 @@ int main(void) {
         fprintf(stderr, "Make sure you have trained the network first by running ./train_nn\n");
         return 1;
     }
-    
+
     // Load test data
     printf("Loading test data...\n");
     int num_images, num_labels;
     float *images = read_mnist_images("../files/t10k-images-idx3-ubyte", &num_images);
     unsigned char *labels = read_mnist_labels("../files/t10k-labels-idx1-ubyte", &num_labels);
-    
+
     if (!images || !labels) {
         fprintf(stderr, "Failed to load test data!\n");
         free_network(net);
@@ -170,7 +169,7 @@ int main(void) {
         free(labels);
         return 1;
     }
-    
+
     if (num_images != num_labels) {
         fprintf(stderr, "Mismatch: %d images vs %d labels\n", num_images, num_labels);
         free_network(net);
@@ -178,16 +177,16 @@ int main(void) {
         free(labels);
         return 1;
     }
-    
+
     printf("Loaded %d test samples\n\n", num_images);
-    
+
     // Analyze predictions
     analyze_predictions(net, images, labels, num_images);
-    
+
     // Cleanup
     free_network(net);
     free(images);
     free(labels);
-    
+
     return 0;
 }

@@ -3,7 +3,7 @@
 if [ "$1" == "clean" ]; then
     rm draw_1d train_1d test_1d
 else
-    gcc -o train_1d train_1d.c nn_1d.c -lm -O3
-    gcc -o draw_1d draw_test_1d.c -lSDL2 -lSDL2_ttf -lm -O2
-    gcc -o test_1d test_nn_1d.c -lm
+    gcc -o train_1d train_1d.c nn_1d.c -lm -O3 -Wall -Wextra
+    gcc -o draw_1d draw_test_1d.c -lSDL2 -lSDL2_ttf -lm -O2 -Wall -Wextra
+    gcc -o test_1d test_nn_1d.c -lm -Wall -Wextra
 fi

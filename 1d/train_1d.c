@@ -91,7 +91,7 @@ int main() {
     scanf("%d", &epochs);
 
     // Training started
-    int res = train(lay_num, layers, lay_sizes, num_images, images, num_labels, labels, epochs, 100, 0.01, "weights.bin");
+    int res = train(lay_num, layers, lay_sizes, num_images, images, labels, epochs, 100, 0.01, "weights.bin");
     if(!res) {
         printf("Trainig is over!\nWeights saved to \"weights.bin\" file.\n");
         return 0;
