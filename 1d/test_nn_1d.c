@@ -30,23 +30,42 @@ void init(Layer l[], int sizes[], int lay_num) {
     }
 }
 
-void load_weights(Layer **l, int lay_num, const char *name) {
+Layer* load_model(const char* name, int* lay_num, int** lay_sizes_ptr) {
     FILE *f = fopen(name, "rb");
     if(!f) {
         printf("Could NOT open \"%s\" file.\n", name);
-        exit(1);
+        return NULL;
     }
 
-    for(int layer = 0; layer < lay_num; layer++) {
-        int saved_size;
-        fread(&saved_size, sizeof(int), 1, f);
-        if(saved_size != l[layer]->size) {
-            fprintf(stderr, "Layer %d size mismatch: expected %d, got %d\n", layer, l[layer]->size, saved_size);
-        }
-        fread(l[layer]->biases, sizeof(float), l[layer]->size, f);
-        fread(l[layer]->weights, sizeof(float), l[layer]->pre_size * l[layer]->size, f);
+    // Read layer count
+    if (fread(lay_num, sizeof(int), 1, f) != 1) {
+        printf("Error reading layer count from %s\n", name);
+        fclose(f);
+        return NULL;
     }
+
+    // Allocate and read layer sizes
+    *lay_sizes_ptr = (int*)malloc((*lay_num + 1) * sizeof(int));
+    if (fread(*lay_sizes_ptr, sizeof(int), *lay_num + 1, f) != (*lay_num + 1)) {
+        printf("Error reading layer sizes from %s\n", name);
+        fclose(f);
+        free(*lay_sizes_ptr);
+        return NULL;
+    }
+
+    // Allocate and initialize layers
+    Layer *l = (Layer*)malloc(*lay_num * sizeof(Layer));
+    init(l, *lay_sizes_ptr, *lay_num); // Uses the local init()
+
+    // Read weights and biases
+    for(int layer = 0; layer < *lay_num; layer++) {
+        fread(l[layer].biases, sizeof(float), l[layer].size, f);
+        fread(l[layer].weights, sizeof(float), l[layer].pre_size * l[layer].size, f);
+    }
+
     fclose(f);
+    printf("Model loaded from %s\n", name);
+    return l;
 }
 
 void feedforward(float input[], int size, Layer *l, int activate) {
@@ -80,7 +99,6 @@ void softmax(float output[], int length) {
     for(int i = 0; i < length; i++)
         output[i] /= sum;
 }
-/* Reading functions */
 
 int reverse_int(int n) {
     unsigned char c1, c2, c3, c4;
@@ -145,13 +163,6 @@ unsigned char *read_mnist_labels(const char *name, int *count) {
 }
 
 void run(Layer *l, int lay_num, int lay_sizes[]) {
-    Layer **lay_ptr = (Layer**)malloc(lay_num * sizeof(Layer*));
-    for(int i = 0; i < lay_num; i++) {
-        lay_ptr[i] = &l[i];
-    }
-    init(l, lay_sizes, lay_num);
-    load_weights(lay_ptr, lay_num, "weights.bin");
-
     int num_images;
     float *input = read_mnist_images("../files/t10k-images-idx3-ubyte", &num_images);
     int num_labels;
@@ -205,18 +216,19 @@ void run(Layer *l, int lay_num, int lay_sizes[]) {
 
 int main() {
     int lay_num;
-    printf("Enter lay_num: ");
-    scanf("%d", &lay_num);
-    Layer *l = malloc(lay_num * sizeof(Layer));
-    int lay_sizes[lay_num+1];
-    lay_sizes[0] = 784;
-    for(int i = 1; i < lay_num; i++) {
-        printf("Enter Layer%d number of neurons: ", i);
-        scanf("%d", &lay_sizes[i]);
+    int *lay_sizes;
+    Layer *l = load_model("weights.bin", &lay_num, &lay_sizes);
+    printf("Layer number: %d\n", lay_num);
+    for(int i = 0; i < lay_num; i++) {
+        printf("Layer %d: %d neurons\n", i, lay_sizes[i]);
     }
-    printf("Enter OUTPUT layer number of neuroms: ");
-    scanf("%d", &lay_sizes[lay_num]);
 
+    if(!l) {
+        return 1;
+    }
     run(l, lay_num, lay_sizes);
+
+    free(l);
+    free(lay_sizes);
     return 0;
 }

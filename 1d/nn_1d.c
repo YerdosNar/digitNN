@@ -162,11 +162,20 @@ void update_parameters(Layer *l, float learn_rate, int batch_size) {
     }
 }
 
-void save_weights(Layer **l, int lay_num, const char* file) {
+void save_weights(Layer **l, int lay_num, int lay_sizes[], const char* file) {
     FILE* f = fopen(file, "wb");
+    if (!f) {
+        printf("Could NOT open \"%s\" file for writing.\n", file);
+        return;
+    }
 
+    // Write network architecture first
+    fwrite(&lay_num, sizeof(int), 1, f);
+    fwrite(lay_sizes, sizeof(int), lay_num + 1, f);
+
+    // Write weights and biases
     for(int layer = 0; layer < lay_num; layer++) {
-        fwrite(&l[layer]->size, sizeof(int), 1, f);
+        // We no longer write the individual size, it's in lay_sizes
         fwrite(l[layer]->biases, sizeof(float), l[layer]->size, f);
         fwrite(l[layer]->weights, sizeof(float), l[layer]->pre_size * l[layer]->size, f);
     }
@@ -239,7 +248,10 @@ int train(int lay_num, Layer *l, int lay_sizes[], int num_images, float* images,
         printf("Epoch %d, Loss: %.3f, Accuracy: %.2f%%\nCorrect: %d, Incorrect: %d\n", epoch+1, total_loss/num_images, (float)correct/num_images*100, correct, incorrect);
         printf("TIME >>> %.4f seconds\n\n", time_spent);
     }
-    save_weights(layers_ptr, lay_num, weights_bin_file);
+
+    // Updated call to save_weights
+    save_weights(layers_ptr, lay_num, lay_sizes, weights_bin_file);
+
     printf("Average epoch time: %.4f\n", overall_time/epochs);
     free(indices);
     free(layers_ptr);

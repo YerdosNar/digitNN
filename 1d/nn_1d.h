@@ -19,7 +19,9 @@ void shuffle(int *arr, int length);
 void softmax(float output[], int size);
 void backpropagation(float input[], Layer **l, int lay_num, float target[]);
 void update_parameters(Layer *l, float learn_rate, int batch_size);
-void save_weights(Layer **l, int lay_num, const char* file);
+// Updated to pass lay_sizes
+void save_weights(Layer **l, int lay_num, int lay_sizes[], const char* file);
+// Updated to match implementation
 int train(int lay_num, Layer *l, int lay_sizes[], int num_images, float *images, unsigned char* labels, int epochs, int batch_size, float learn_rate, const char *weights_bin_file);
 
 #endif

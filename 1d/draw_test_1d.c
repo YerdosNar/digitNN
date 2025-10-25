@@ -78,24 +78,42 @@ void softmax(float output[], int length) {
         output[i] /= sum;
 }
 
-void load_weights(Layer **l, int lay_num, const char* filename) {
-    FILE* file = fopen(filename, "rb");
-    if(!file) {
-        printf("Could NOT open \"%s\" file\n", filename);
-        exit(1);
+Layer* load_model(const char* name, int* lay_num, int** lay_sizes_ptr) {
+    FILE *f = fopen(name, "rb");
+    if(!f) {
+        printf("Could NOT open \"%s\" file.\n", name);
+        return NULL;
     }
 
-    for(int layer = 0; layer < lay_num; layer++) {
-        int saved_size;
-        fread(&saved_size, sizeof(int), 1, file);
-        if(saved_size != l[layer]->size) {
-            fprintf(stderr, "Layer %d size mismatch: expected %d, got %d\n", layer, l[layer]->size, saved_size);
-        }
-        fread(l[layer]->biases, sizeof(float), l[layer]->size, file);
-        fread(l[layer]->weights, sizeof(float), l[layer]->pre_size * l[layer]->size, file);
+    // Read layer count
+    if (fread(lay_num, sizeof(int), 1, f) != 1) {
+        printf("Error reading layer count from %s\n", name);
+        fclose(f);
+        return NULL;
     }
 
-    fclose(file);
+    // Allocate and read layer sizes
+    *lay_sizes_ptr = (int*)malloc((*lay_num + 1) * sizeof(int));
+    if (fread(*lay_sizes_ptr, sizeof(int), *lay_num + 1, f) != (*lay_num + 1)) {
+        printf("Error reading layer sizes from %s\n", name);
+        fclose(f);
+        free(*lay_sizes_ptr);
+        return NULL;
+    }
+
+    // Allocate and initialize layers
+    Layer *l = (Layer*)malloc(*lay_num * sizeof(Layer));
+    init(l, *lay_sizes_ptr, *lay_num); // Uses the local init()
+
+    // Read weights and biases
+    for(int layer = 0; layer < *lay_num; layer++) {
+        fread(l[layer].biases, sizeof(float), l[layer].size, f);
+        fread(l[layer].weights, sizeof(float), l[layer].pre_size * l[layer].size, f);
+    }
+
+    fclose(f);
+    printf("Model loaded from %s\n", name);
+    return l;
 }
 
 // Drawing functions
@@ -199,14 +217,6 @@ void draw_confidence(float* conf) {
 }
 
 void run(Layer *l, int lay_num, int lay_sizes[]) {
-    Layer **lay_ptr = (Layer**)malloc(lay_num * sizeof(Layer*));
-    for(int i = 0; i < lay_num; i++) {
-        lay_ptr[i] = &l[i];
-    }
-    // Initialize neural network
-    init(l, lay_sizes, lay_num);
-    load_weights(lay_ptr, lay_num, "weights.bin");
-
     // Initialize SDL
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("SDL init failed: %s\n", SDL_GetError());
@@ -219,7 +229,6 @@ void run(Layer *l, int lay_num, int lay_sizes[]) {
         printf("Failed to load font: %s\n", TTF_GetError());
         exit(1);
     }
-
 
     window = SDL_CreateWindow("MNIST Draw", SDL_WINDOWPOS_CENTERED,
                             SDL_WINDOWPOS_CENTERED, WIDTH+120, HEIGHT, 0);
@@ -281,10 +290,6 @@ void run(Layer *l, int lay_num, int lay_sizes[]) {
     for(int i = 0; i < lay_num; i++) {
         free_layer(&l[i]);
     }
-    for(int i = 0; i < lay_num; i++) {
-        free(lay_ptr[i]);
-    }
-    free(lay_ptr);
     TTF_CloseFont(font);
     TTF_Quit();
     SDL_DestroyRenderer(renderer);
@@ -294,18 +299,15 @@ void run(Layer *l, int lay_num, int lay_sizes[]) {
 
 int main() {
     int lay_num;
-    printf("Enter lay_num: ");
-    scanf("%d", &lay_num);
-    Layer *l = malloc(lay_num * sizeof(Layer));
-    int lay_sizes[lay_num+1];
-    lay_sizes[0] = 784;
-    for(int i = 1; i < lay_num; i++) {
-        printf("Enter Layer%d number of neurons: ", i);
-        scanf("%d", &lay_sizes[i]);
+    int *lay_sizes;
+    Layer *l = load_model("weights.bin", &lay_num, &lay_sizes);
+    if(!l) {
+        return 1;
     }
-    printf("Enter OUTPUT layer number of neuroms: ");
-    scanf("%d", &lay_sizes[lay_num]);
 
     run(l, lay_num, lay_sizes);
+
+    free(l);
+    free(lay_sizes);
     return 0;
 }
