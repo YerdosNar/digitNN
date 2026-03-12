@@ -264,7 +264,7 @@ int main() {
                     break;
 
                 case SDL_KEYDOWN:
-                    if (event.key.keysym.sym == SDLK_c) {
+                    if (event.key.keysym.sym == SDLK_c || event.key.keysym.sym == SDLK_SPACE) {
                         clear_canvas();
                     } else if (event.key.keysym.sym == SDLK_ESCAPE) {
                         running = 0;
