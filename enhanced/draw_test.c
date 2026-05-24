@@ -148,7 +148,7 @@ void draw_confidence(Network *net) {
         "Left click: Draw",
         "Right click: Erase",
         "C: Clear canvas",
-        "ESC: Quit"
+        "ESC or q: Quit"
     };
 
     int y_offset = HEIGHT - 100;
@@ -231,7 +231,7 @@ int main() {
     printf("- Left click and drag to draw\n");
     printf("- Right click and drag to erase\n");
     printf("- Press 'C' to clear the canvas\n");
-    printf("- Press 'ESC' to quit\n\n");
+    printf("- Press 'ESC' or 'q' to quit\n\n");
 
     while (running) {
         while (SDL_PollEvent(&event)) {
@@ -266,7 +266,7 @@ int main() {
                 case SDL_KEYDOWN:
                     if (event.key.keysym.sym == SDLK_c || event.key.keysym.sym == SDLK_SPACE) {
                         clear_canvas();
-                    } else if (event.key.keysym.sym == SDLK_ESCAPE) {
+                    } else if (event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_q) {
                         running = 0;
                     }
                     break;
