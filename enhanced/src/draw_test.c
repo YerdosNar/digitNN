@@ -8,7 +8,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>
-#include "nn_lib.h"
+#include "../include/nn_lib.h"
 
 #define WIDTH 280
 #define HEIGHT 280

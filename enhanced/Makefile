@@ -29,23 +29,23 @@ endif
 all: $(TARGETS)
 
 # Compile the library
-nn_lib.o: nn_lib.c nn_lib.h
+nn_lib.o: src/nn_lib.c include/nn_lib.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Main training program
-train_nn: train_nn.c nn_lib.o nn_lib.h
+train_nn: src/train_nn.c nn_lib.o include/nn_lib.h
 	$(CC) $(CFLAGS) $< nn_lib.o -o $@ $(LDFLAGS)
 
 # Test program
-test_nn: test_nn.c nn_lib.o nn_lib.h
+test_nn: src/test_nn.c nn_lib.o include/nn_lib.h
 	$(CC) $(CFLAGS) $< nn_lib.o -o $@ $(LDFLAGS)
 
 # Drawing interface (only if SDL2 is available)
-draw_test: draw_test.c nn_lib.o nn_lib.h
+draw_test: src/draw_test.c nn_lib.o include/nn_lib.h
 	$(CC) $(CFLAGS) $< nn_lib.o -o $@ $(SDL_CFLAGS) $(SDL_LIBS) $(LDFLAGS)
 
 clean:
-	rm -f $(TARGETS) $(OBJS) weights.bin
+	rm -f $(TARGETS) $(OBJS)
 
 # Download MNIST dataset
 download-mnist:

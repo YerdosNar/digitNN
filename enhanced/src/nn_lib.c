@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include "nn_lib.h"
+#include "../include/nn_lib.h"
 
 // Activation functions
 float relu(float x) {

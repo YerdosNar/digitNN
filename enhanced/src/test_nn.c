@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "nn_lib.h"
+#include "../include/nn_lib.h"
 
 // Analysis functions
 void analyze_predictions(Network *net, float *images, unsigned char *labels, int num_samples) {
