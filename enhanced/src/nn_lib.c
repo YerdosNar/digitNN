@@ -35,37 +35,32 @@ void he_init_weights(float **weights, int fan_in, int fan_out) {
 }
 
 bool init_layer(Layer *l, int pre_size, int size) {
-    l->size = size;
-    l->pre_size = pre_size;
+    l->size             = size;
+    l->pre_size         = pre_size;
 
-    l->neurons = calloc(size, sizeof(float));
-    l->pre_activation = calloc(size, sizeof(float));
-    l->biases = calloc(size, sizeof(float));
-    l->bias_gradients = calloc(size, sizeof(float));
-    l->bias_momentum = calloc(size, sizeof(float));
-    l->deltas = calloc(size, sizeof(float));
+    l->neurons          = calloc(size, sizeof(float));
+    l->pre_activation   = calloc(size, sizeof(float));
+    l->biases           = calloc(size, sizeof(float));
+    l->bias_gradients   = calloc(size, sizeof(float));
+    l->bias_momentum    = calloc(size, sizeof(float));
+    l->deltas           = calloc(size, sizeof(float));
 
     if (!l->neurons || !l->pre_activation || !l->biases ||
-        !l->bias_gradients || !l->bias_momentum || !l->deltas) {
-        return false;
-    }
+        !l->bias_gradients || !l->bias_momentum || !l->deltas) return false;
 
-    l->weights = malloc(size * sizeof(float*));
+    l->weights          = malloc(size * sizeof(float*));
     l->weight_gradients = malloc(size * sizeof(float*));
-    l->weight_momentum = malloc(size * sizeof(float*));
+    l->weight_momentum  = malloc(size * sizeof(float*));
 
-    if (!l->weights || !l->weight_gradients || !l->weight_momentum) {
-        return false;
-    }
+    if (!l->weights || !l->weight_gradients || !l->weight_momentum) return false;
 
     for (int i = 0; i < size; i++) {
-        l->weights[i] = calloc(pre_size, sizeof(float));
+        l->weights[i]   = calloc(pre_size, sizeof(float));
         l->weight_gradients[i] = calloc(pre_size, sizeof(float));
-        l->weight_momentum[i] = calloc(pre_size, sizeof(float));
+        l->weight_momentum[i]  = calloc(pre_size, sizeof(float));
 
-        if (!l->weights[i] || !l->weight_gradients[i] || !l->weight_momentum[i]) {
+        if (!l->weights[i] || !l->weight_gradients[i] || !l->weight_momentum[i])
             return false;
-        }
     }
 
     // Initialize weights using He initialization
@@ -75,27 +70,22 @@ bool init_layer(Layer *l, int pre_size, int size) {
 }
 
 Network* create_network(int *layer_sizes, int num_layers) {
-    Network *net = malloc(sizeof(Network));
+    Network *net        = malloc(sizeof(Network));
     if (!net) return NULL;
 
-    net->num_layers = num_layers - 1;  // Excluding input layer
-    net->layers = malloc(net->num_layers * sizeof(Layer));
-    if (!net->layers) {
-        free(net);
-        return NULL;
-    }
+    net->num_layers     = num_layers - 1;  // Excluding input layer
+    net->layers         = malloc(net->num_layers * sizeof(Layer));
+    if (!net->layers) {free(net);return NULL;}
 
     // Default hyperparameters
-    net->learning_rate = 0.001f;
-    net->momentum = 0.9f;
-    net->l2_lambda = 0.0001f;
+    net->learning_rate  = 0.001f;
+    net->momentum       = 0.9f;
+    net->l2_lambda      = 0.0001f;
 
     for (int i = 0; i < net->num_layers; i++) {
         if (!init_layer(&net->layers[i], layer_sizes[i], layer_sizes[i + 1])) {
             // Clean up on failure
-            for (int j = 0; j < i; j++) {
-                free_layer(&net->layers[j]);
-            }
+            for (int j = 0; j < i; j++) free_layer(&net->layers[j]);
             free(net->layers);
             free(net);
             return NULL;
@@ -130,18 +120,16 @@ void free_layer(Layer *l) {
 void free_network(Network *net) {
     if (!net) return;
 
-    for (int i = 0; i < net->num_layers; i++) {
-        free_layer(&net->layers[i]);
-    }
+    for (int i = 0; i < net->num_layers; i++) free_layer(&net->layers[i]);
     free(net->layers);
     free(net);
 }
 
 // Optimized matrix multiplication with cache-friendly access
 void feedforward(const float *input, int input_size, Layer *l, bool use_relu) {
-    float *pre_act = l->pre_activation;
-    float *neurons = l->neurons;
-    float *biases = l->biases;
+    float *pre_act  = l->pre_activation;
+    float *neurons  = l->neurons;
+    float *biases   = l->biases;
     float **weights = l->weights;
 
     // Initialize with biases
@@ -162,9 +150,7 @@ void feedforward(const float *input, int input_size, Layer *l, bool use_relu) {
         }
 
         // Handle remaining elements
-        for (; j < input_size; j++) {
-            sum += weight_row[j] * input[j];
-        }
+        for (; j < input_size; j++) sum += weight_row[j] * input[j];
 
         pre_act[i] = sum;
         neurons[i] = use_relu ? relu(sum) : sum;
@@ -174,9 +160,8 @@ void feedforward(const float *input, int input_size, Layer *l, bool use_relu) {
 void softmax_stable(float *output, int size) {
     // Find max for numerical stability
     float max_val = output[0];
-    for (int i = 1; i < size; i++) {
+    for (int i = 1; i < size; i++)
         if (output[i] > max_val) max_val = output[i];
-    }
 
     // Compute exp and sum
     float sum = 0.0f;
@@ -188,9 +173,7 @@ void softmax_stable(float *output, int size) {
     // Normalize
     if (sum > 0) {
         float inv_sum = 1.0f / sum;
-        for (int i = 0; i < size; i++) {
-            output[i] *= inv_sum;
-        }
+        for (int i = 0; i < size; i++) output[i] *= inv_sum;
     }
 }
 
@@ -218,9 +201,8 @@ void backward_pass(Network *net, const float *input, const float *target) {
     Layer *output_layer = &net->layers[last];
 
     // Output layer deltas (softmax + cross-entropy derivative)
-    for (int i = 0; i < output_layer->size; i++) {
+    for (int i = 0; i < output_layer->size; i++)
         output_layer->deltas[i] = output_layer->neurons[i] - target[i];
-    }
 
     // Backpropagate through hidden layers
     for (int l = last - 1; l >= 0; l--) {
@@ -250,15 +232,16 @@ void backward_pass(Network *net, const float *input, const float *target) {
             layer->bias_gradients[i] += layer->deltas[i];
 
             for (int j = 0; j < prev_size; j++) {
-                layer->weight_gradients[i][j] += layer->deltas[i] * prev_neurons[j];
+                layer->weight_gradients[i][j] += layer->deltas[i] *
+                                                 prev_neurons[j];
             }
         }
     }
 }
 
 void update_parameters(Network *net, int batch_size) {
-    float lr = net->learning_rate / batch_size;
-    float momentum = net->momentum;
+    float lr        = net->learning_rate / batch_size;
+    float momentum  = net->momentum;
     float l2_factor = 1.0f - net->learning_rate * net->l2_lambda;
 
     for (int l = 0; l < net->num_layers; l++) {
@@ -267,14 +250,17 @@ void update_parameters(Network *net, int batch_size) {
         for (int i = 0; i < layer->size; i++) {
             // Update biases with momentum
             layer->bias_momentum[i] = momentum * layer->bias_momentum[i] -
-                                     lr * layer->bias_gradients[i];
+                                      lr * layer->bias_gradients[i];
             layer->biases[i] += layer->bias_momentum[i];
 
             // Update weights with momentum and L2 regularization
             for (int j = 0; j < layer->pre_size; j++) {
-                layer->weight_momentum[i][j] = momentum * layer->weight_momentum[i][j] -
-                                               lr * layer->weight_gradients[i][j];
-                layer->weights[i][j] = l2_factor * layer->weights[i][j] +
+                layer->weight_momentum[i][j] = momentum *
+                                               layer->weight_momentum[i][j] -
+                                               lr *
+                                               layer->weight_gradients[i][j];
+                layer->weights[i][j] = l2_factor *
+                                       layer->weights[i][j] +
                                        layer->weight_momentum[i][j];
 
                 // Reset gradient
@@ -372,9 +358,8 @@ float* read_mnist_images(const char *filename, int *count) {
     }
 
     // Normalize to [0, 1]
-    for (size_t i = 0; i < total_pixels; i++) {
+    for (size_t i = 0; i < total_pixels; i++)
         images[i] = buffer[i] / 255.0f;
-    }
 
     free(buffer);
     fclose(file);
